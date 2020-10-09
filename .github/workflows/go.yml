@@ -34,7 +34,7 @@ jobs:
       run: go build -ldflags="-linkmode external -extldflags -static" -o main
 
     - name: Debug
-      run: ls -lah
+      run: ls -lah && chmod +x main
 
     - name: Docker Build & Push to GitHub Package
       uses: opspresso/action-docker@master
