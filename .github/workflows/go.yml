@@ -35,3 +35,16 @@ jobs:
 
     - name: Debug
       run: ls -lah
+
+    - name: Docker Build & Push to GitHub Package
+      uses: opspresso/action-docker@master
+      with:
+        args: --docker
+      env:
+        USERNAME: "habibiefaried"
+        PASSWORD: ${{ secrets.GH_PERSONAL_TOKEN }}
+        REGISTRY: "docker.pkg.github.com"
+        DOCKERFILE: "Dockerfile"
+        IMAGE_NAME: "efishery-challenge"
+        LATEST: "true"
+        
