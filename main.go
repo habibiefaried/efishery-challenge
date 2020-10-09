@@ -12,10 +12,22 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		message := scanner.Text()
-		fmt.Println("Message Received:", message)
-		newMessage := strings.ToUpper(message)
-		conn.Write([]byte(newMessage + "\n"))
+		s := strings.Split(scanner.Text(), " ")
+		fmt.Println(s)
+		switch command := strings.ToLower(s[0]); command {
+		case "set":
+			fmt.Println("SET Key")
+		case "get":
+			fmt.Println("GET Key")
+		case "list":
+			fmt.Println("List keys")
+		case "unset":
+			fmt.Println("unset")
+		case "download":
+			fmt.Println("Download all env")
+		default:
+			conn.Write([]byte("Perintah tidak ditemukan\n"))
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -29,7 +41,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Accept connection on port")
+	fmt.Println("Accept connection....")
 
 	for {
 		conn, err := ln.Accept()
