@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/joho/godotenv"
 	"io/ioutil"
@@ -88,7 +89,19 @@ func handleConnection(conn net.Conn) {
 							conn.Write([]byte("import berhasil\n"))
 						}
 					} else if tipe == "json" {
-
+						jsonMap := make(map[string]string)
+						err := json.Unmarshal(body, &jsonMap)
+						if err != nil {
+							fmt.Println(err)
+							conn.Write([]byte("file json tidak valid\n"))
+						} else {
+							mutex.Lock()
+							for k, v := range jsonMap {
+								envlist[k] = v
+							}
+							mutex.Unlock()
+							conn.Write([]byte("import berhasil\n"))
+						}
 					} else if tipe == "yaml" {
 
 					} else {
