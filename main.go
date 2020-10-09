@@ -3,43 +3,17 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
+	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 )
 
 var envlist = map[string]string{}
 var mutex = &sync.RWMutex{}
-
-func DownloadFile(url string) error {
-	// Get the data
-	s := strings.Split(url, "/")
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Create the file
-	out, err := os.Create(s[len(s)-1])
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Write the body to file
-	body, err := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
-
-	_, err = io.Copy(out, resp.Body)
-	return err
-}
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
@@ -91,12 +65,38 @@ func handleConnection(conn net.Conn) {
 				conn.Write([]byte("Penggunaan: unset \"<key>\"\n"))
 			}
 		case "import":
-			fmt.Println("Download all env")
 			if len(s) == 3 {
-				err := DownloadFile(s[2])
+				resp, err := http.Get(s[2])
 				if err != nil {
 					fmt.Println(err)
+				} else {
+					// Write the body to file
+					body, _ := ioutil.ReadAll(resp.Body)
+					tipe := strings.ToLower(s[1])
+
+					if tipe == ".env" {
+						data, err := godotenv.Unmarshal(string(body))
+						if err != nil {
+							fmt.Println(err)
+							conn.Write([]byte("file .env tidak valid\n"))
+						} else {
+							mutex.Lock()
+							for k, v := range data {
+								envlist[k] = v
+							}
+							mutex.Unlock()
+							conn.Write([]byte("import berhasil\n"))
+						}
+					} else if tipe == "json" {
+
+					} else if tipe == "yaml" {
+
+					} else {
+						conn.Write([]byte("Penggunaan: valid tipe -> .env/json/yaml \n"))
+					}
 				}
+				defer resp.Body.Close()
+
 			} else {
 				conn.Write([]byte("Penggunaan: import \"<tipe:json/.env/yaml>\" \"<url>\" \n"))
 			}
