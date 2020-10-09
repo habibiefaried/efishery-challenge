@@ -3,14 +3,43 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
+	"os"
 	"strings"
 	"sync"
 )
 
 var envlist = map[string]string{}
 var mutex = &sync.RWMutex{}
+
+func DownloadFile(url string) error {
+	// Get the data
+	s := strings.Split(url, "/")
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Create the file
+	out, err := os.Create(s[len(s)-1])
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Write the body to file
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
+
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
@@ -63,6 +92,14 @@ func handleConnection(conn net.Conn) {
 			}
 		case "import":
 			fmt.Println("Download all env")
+			if len(s) == 3 {
+				err := DownloadFile(s[2])
+				if err != nil {
+					fmt.Println(err)
+				}
+			} else {
+				conn.Write([]byte("Penggunaan: import \"<tipe:json/.env/yaml>\" \"<url>\" \n"))
+			}
 		default:
 			conn.Write([]byte("Perintah tidak ditemukan\n"))
 		}
