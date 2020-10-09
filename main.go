@@ -6,24 +6,62 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 )
+
+var envlist = map[string]string{}
+var mutex = &sync.RWMutex{}
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		s := strings.Split(scanner.Text(), " ")
-		fmt.Println(s)
+		fmt.Printf("Input diterima: %v\n", s)
 		switch command := strings.ToLower(s[0]); command {
 		case "set":
-			fmt.Println("SET Key")
+			if len(s) == 3 {
+				mutex.Lock()
+				envlist[s[1]] = s[2]
+				mutex.Unlock()
+				conn.Write([]byte("Penulisan key berhasil\n"))
+			} else {
+				conn.Write([]byte("Penggunaan: set \"<key>\" \"<value>\"\n"))
+			}
 		case "get":
-			fmt.Println("GET Key")
+			if len(s) == 2 {
+				mutex.RLock()
+				val, ok := envlist[s[1]]
+				if ok {
+					conn.Write([]byte(val + "\n"))
+				} else {
+					conn.Write([]byte("key " + s[1] + " tidak ditemukan\n"))
+				}
+				mutex.RUnlock()
+			} else {
+				conn.Write([]byte("Penggunaan: get \"<key>\"\n"))
+			}
 		case "list":
-			fmt.Println("List keys")
+			mutex.RLock()
+			for k, _ := range envlist {
+				conn.Write([]byte(k + "\n"))
+			}
+			mutex.RUnlock()
 		case "unset":
-			fmt.Println("unset")
-		case "download":
+			if len(s) == 2 {
+				mutex.Lock()
+				_, ok := envlist[s[1]]
+				if ok {
+					delete(envlist, s[1])
+					conn.Write([]byte("key " + s[1] + " berhasil dihapus\n"))
+				} else {
+					conn.Write([]byte("key " + s[1] + " tidak ditemukan\n"))
+				}
+				mutex.Unlock()
+			} else {
+				conn.Write([]byte("Penggunaan: unset \"<key>\"\n"))
+			}
+		case "import":
 			fmt.Println("Download all env")
 		default:
 			conn.Write([]byte("Perintah tidak ditemukan\n"))
