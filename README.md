@@ -49,11 +49,19 @@ GET APP_SECRET
 abcdef
 ```
 
-As instructed, all of these keys will be written on file with its name as the key, and content as the value.
+Semua env akan ditulis dengan nama file sesuai dengan key yang dimaksud, dengan konten yang sesuai dengan value.
 
 ```
 $ ls fsdir/
 APP_ID  APP_SECRET  a  kunci
 $ cat fsdir/APP_ID
 1234567
+```
+
+# Ukuran image
+Karena menggunakan kosongan (dikenal dengan scratch), ukuran image ini hanya 8MB
+```
+# docker images
+REPOSITORY                                                                  TAG                 IMAGE ID            CREATED             SIZE
+docker.pkg.github.com/habibiefaried/efishery-challenge/efishery-challenge   latest              655c68fcfb3b        8 minutes ago       8.93MB
 ```
