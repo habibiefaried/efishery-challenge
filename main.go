@@ -16,6 +16,7 @@ import (
 
 var envlist = map[string]string{}
 var mutex = &sync.RWMutex{}
+var dirname = "./fsdir"
 
 func sanitizePath(v string) string {
 	ret := strings.Replace(v, "..", "", -1)
@@ -27,7 +28,7 @@ func putKey(key string, value string) {
 	mutex.Lock()
 	skey := sanitizePath(key)
 	if key == skey {
-		err := ioutil.WriteFile("./fsdir/"+skey, []byte(value), 0644)
+		err := ioutil.WriteFile(dirname+"/"+skey, []byte(value), 0644)
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -78,7 +79,7 @@ func handleConnection(conn net.Conn) {
 				_, ok := envlist[s[1]]
 				if ok {
 					delete(envlist, s[1])
-					_ = os.Remove("./fsdir/" + sanitizePath(s[1]))
+					_ = os.Remove(dirname + "/" + sanitizePath(s[1]))
 					conn.Write([]byte("key " + s[1] + " berhasil dihapus\n"))
 				} else {
 					conn.Write([]byte("key " + s[1] + " tidak ditemukan\n"))
@@ -157,12 +158,26 @@ func main() {
 		log.Println(err)
 	}
 
-	log.Println("Creating dir")
-
-	if _, err := os.Stat("./fsdir"); os.IsNotExist(err) {
-		errDir := os.MkdirAll("./fsdir", 0755)
+	if _, err := os.Stat(dirname); os.IsNotExist(err) {
+		log.Println("Creating dir")
+		errDir := os.MkdirAll(dirname, 0755)
 		if errDir != nil {
 			log.Println(err)
+		}
+	} else {
+		log.Println("Directory exists, loading...")
+		files, err := ioutil.ReadDir(dirname)
+		if err != nil {
+			log.Println(err)
+		}
+
+		for _, file := range files {
+			content, err := ioutil.ReadFile(dirname + "/" + file.Name())
+			if err != nil {
+				log.Println(err)
+			}
+
+			envlist[file.Name()] = string(content)
 		}
 	}
 
