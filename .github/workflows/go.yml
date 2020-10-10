@@ -36,7 +36,7 @@ jobs:
     - name: Debug
       run: ls -lah && chmod +x main
 
-    - name: Docker Build & Push to GitHub Package
+    - name: Docker Build Distroless & Push to GitHub Package
       uses: opspresso/action-docker@master
       with:
         args: --docker
@@ -48,3 +48,14 @@ jobs:
         IMAGE_NAME: "efishery-challenge"
         LATEST: "true"
         
+    - name: Docker Build Alpine & Push to GitHub Package
+      uses: opspresso/action-docker@master
+      with:
+        args: --docker
+      env:
+        USERNAME: "habibiefaried"
+        PASSWORD: ${{ secrets.GH_PERSONAL_TOKEN }}
+        REGISTRY: "docker.pkg.github.com"
+        DOCKERFILE: "DockerfileAlpine"
+        IMAGE_NAME: "efishery-challenge-alpine"
+        LATEST: "true"
