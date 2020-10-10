@@ -47,6 +47,19 @@ kunci
 
 GET APP_SECRET
 abcdef
+
+download
+Penggunaan: download "<tipe: .env/json/yaml>"
+download .env
+APP_ID=1234567
+APP_SECRET=abcdef
+kunci=test
+download json
+{"APP_ID":"1234567","APP_SECRET":"abcdef","kunci":"test"}
+download yaml
+APP_ID: 1234567
+APP_SECRET: abcdef
+kunci: test
 ```
 
 Semua env akan ditulis dengan nama file sesuai dengan key yang dimaksud, dengan konten yang sesuai dengan value.
@@ -58,10 +71,3 @@ $ cat fsdir/APP_ID
 1234567
 ```
 
-# Ukuran image
-Karena menggunakan kosongan (dikenal dengan scratch), ukuran image ini hanya 8MB
-```
-# docker images
-REPOSITORY                                                                  TAG                 IMAGE ID            CREATED             SIZE
-docker.pkg.github.com/habibiefaried/efishery-challenge/efishery-challenge   latest              655c68fcfb3b        8 minutes ago       8.93MB
-```

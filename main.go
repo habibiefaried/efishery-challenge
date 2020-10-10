@@ -73,6 +73,31 @@ func handleConnection(conn net.Conn) {
 				conn.Write([]byte(k + "\n"))
 			}
 			mutex.RUnlock()
+		case "download":
+			mutex.RLock()
+			if len(s) == 2 {
+				switch tipe := strings.ToLower(s[1]); tipe {
+				case ".env":
+					for k, v := range envlist {
+						conn.Write([]byte(k + "=" + v + "\n"))
+					}
+				case "json":
+					jsonString, err := json.Marshal(envlist)
+					if err != nil {
+						log.Println(err)
+					}
+					conn.Write(jsonString)
+				case "yaml":
+					for k, v := range envlist {
+						conn.Write([]byte(k + ": " + v + "\n"))
+					}
+				default:
+					conn.Write([]byte("Penggunaan: valid tipe -> .env/json/yaml \n"))
+				}
+			} else {
+				conn.Write([]byte("Penggunaan: download \"<tipe: .env/json/yaml>\"\n"))
+			}
+			mutex.RUnlock()
 		case "unset":
 			if len(s) == 2 {
 				mutex.Lock()
@@ -96,9 +121,8 @@ func handleConnection(conn net.Conn) {
 				} else {
 					// Write the body to file
 					body, _ := ioutil.ReadAll(resp.Body)
-					tipe := strings.ToLower(s[1])
-
-					if tipe == ".env" {
+					switch tipe := strings.ToLower(s[1]); tipe {
+					case ".env":
 						data, err := godotenv.Unmarshal(string(body))
 						if err != nil {
 							log.Println(err)
@@ -109,7 +133,7 @@ func handleConnection(conn net.Conn) {
 							}
 							conn.Write([]byte("import berhasil\n"))
 						}
-					} else if tipe == "json" {
+					case "json":
 						jsonMap := make(map[string]string)
 						err := json.Unmarshal(body, &jsonMap)
 						if err != nil {
@@ -121,7 +145,7 @@ func handleConnection(conn net.Conn) {
 							}
 							conn.Write([]byte("import berhasil\n"))
 						}
-					} else if tipe == "yaml" {
+					case "yaml":
 						yamlMap := make(map[string]string)
 						err := yaml.Unmarshal(body, &yamlMap)
 						if err != nil {
@@ -133,7 +157,7 @@ func handleConnection(conn net.Conn) {
 							}
 							conn.Write([]byte("import berhasil\n"))
 						}
-					} else {
+					default:
 						conn.Write([]byte("Penggunaan: valid tipe -> .env/json/yaml \n"))
 					}
 				}
