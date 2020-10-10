@@ -104,14 +104,14 @@ func handleConnection(conn net.Conn) {
 							conn.Write([]byte("import berhasil\n"))
 						}
 					} else if tipe == "yaml" {
-						jsonMap := make(map[string]string)
-						err := yaml.Unmarshal(body, &jsonMap)
+						yamlMap := make(map[string]string)
+						err := yaml.Unmarshal(body, &yamlMap)
 						if err != nil {
 							fmt.Println(err)
 							conn.Write([]byte("file yaml tidak valid\n"))
 						} else {
 							mutex.Lock()
-							for k, v := range jsonMap {
+							for k, v := range yamlMap {
 								envlist[k] = v
 							}
 							mutex.Unlock()
