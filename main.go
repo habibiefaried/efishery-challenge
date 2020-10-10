@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"net"
@@ -103,7 +104,19 @@ func handleConnection(conn net.Conn) {
 							conn.Write([]byte("import berhasil\n"))
 						}
 					} else if tipe == "yaml" {
-
+						jsonMap := make(map[string]string)
+						err := yaml.Unmarshal(body, &jsonMap)
+						if err != nil {
+							fmt.Println(err)
+							conn.Write([]byte("file yaml tidak valid\n"))
+						} else {
+							mutex.Lock()
+							for k, v := range jsonMap {
+								envlist[k] = v
+							}
+							mutex.Unlock()
+							conn.Write([]byte("import berhasil\n"))
+						}
 					} else {
 						conn.Write([]byte("Penggunaan: valid tipe -> .env/json/yaml \n"))
 					}
