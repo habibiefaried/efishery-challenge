@@ -48,3 +48,12 @@ kunci
 GET APP_SECRET
 abcdef
 ```
+
+As instructed, all of these keys will be written on file with its name as the key, and content as the value.
+
+```
+$ ls fsdir/
+APP_ID  APP_SECRET  a  kunci
+$ cat fsdir/APP_ID
+1234567
+```

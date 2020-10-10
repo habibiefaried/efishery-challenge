@@ -3,13 +3,13 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 )
@@ -17,18 +17,38 @@ import (
 var envlist = map[string]string{}
 var mutex = &sync.RWMutex{}
 
+func sanitizePath(v string) string {
+	ret := strings.Replace(v, "..", "", -1)
+	ret = strings.Replace(ret, "/", "", -1)
+	return ret
+}
+
+func putKey(key string, value string) {
+	mutex.Lock()
+	skey := sanitizePath(key)
+	if key == skey {
+		err := ioutil.WriteFile("./fsdir/"+skey, []byte(value), 0644)
+		if err != nil {
+			log.Println(err)
+		} else {
+			envlist[key] = value
+		}
+	} else {
+		log.Printf("Key %v contains invalid character\n", key)
+	}
+	mutex.Unlock()
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		s := strings.Split(scanner.Text(), " ")
-		fmt.Printf("Input diterima: %v\n", s)
+		log.Printf("Input diterima: %v\n", s)
 		switch command := strings.ToLower(s[0]); command {
 		case "set":
 			if len(s) == 3 {
-				mutex.Lock()
-				envlist[s[1]] = s[2]
-				mutex.Unlock()
+				putKey(s[1], s[2])
 				conn.Write([]byte("Penulisan key berhasil\n"))
 			} else {
 				conn.Write([]byte("Penggunaan: set \"<key>\" \"<value>\"\n"))
@@ -58,6 +78,7 @@ func handleConnection(conn net.Conn) {
 				_, ok := envlist[s[1]]
 				if ok {
 					delete(envlist, s[1])
+					_ = os.Remove("./fsdir/" + sanitizePath(s[1]))
 					conn.Write([]byte("key " + s[1] + " berhasil dihapus\n"))
 				} else {
 					conn.Write([]byte("key " + s[1] + " tidak ditemukan\n"))
@@ -70,7 +91,7 @@ func handleConnection(conn net.Conn) {
 			if len(s) == 3 {
 				resp, err := http.Get(s[2])
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err)
 				} else {
 					// Write the body to file
 					body, _ := ioutil.ReadAll(resp.Body)
@@ -79,42 +100,36 @@ func handleConnection(conn net.Conn) {
 					if tipe == ".env" {
 						data, err := godotenv.Unmarshal(string(body))
 						if err != nil {
-							fmt.Println(err)
+							log.Println(err)
 							conn.Write([]byte("file .env tidak valid\n"))
 						} else {
-							mutex.Lock()
 							for k, v := range data {
-								envlist[k] = v
+								putKey(k, v)
 							}
-							mutex.Unlock()
 							conn.Write([]byte("import berhasil\n"))
 						}
 					} else if tipe == "json" {
 						jsonMap := make(map[string]string)
 						err := json.Unmarshal(body, &jsonMap)
 						if err != nil {
-							fmt.Println(err)
+							log.Println(err)
 							conn.Write([]byte("file json tidak valid\n"))
 						} else {
-							mutex.Lock()
 							for k, v := range jsonMap {
-								envlist[k] = v
+								putKey(k, v)
 							}
-							mutex.Unlock()
 							conn.Write([]byte("import berhasil\n"))
 						}
 					} else if tipe == "yaml" {
 						yamlMap := make(map[string]string)
 						err := yaml.Unmarshal(body, &yamlMap)
 						if err != nil {
-							fmt.Println(err)
+							log.Println(err)
 							conn.Write([]byte("file yaml tidak valid\n"))
 						} else {
-							mutex.Lock()
 							for k, v := range yamlMap {
-								envlist[k] = v
+								putKey(k, v)
 							}
-							mutex.Unlock()
 							conn.Write([]byte("import berhasil\n"))
 						}
 					} else {
@@ -132,24 +147,33 @@ func handleConnection(conn net.Conn) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Println("error:", err)
+		log.Println(err)
 	}
 }
 
 func main() {
 	ln, err := net.Listen("tcp", ":1337")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
-	fmt.Println("Accept connection....")
+	log.Println("Creating dir")
+
+	if _, err := os.Stat("./fsdir"); os.IsNotExist(err) {
+		errDir := os.MkdirAll("./fsdir", 0755)
+		if errDir != nil {
+			log.Println(err)
+		}
+	}
+
+	log.Println("Accepting connections....")
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
-		fmt.Println("Calling handleConnection")
+		log.Println("Calling handleConnection")
 		go handleConnection(conn)
 	}
 }
